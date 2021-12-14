@@ -13,17 +13,21 @@ app.use(express.json());
 const getImage = async function request(options) {
     const dateString = (function createForamttedDate() {
         const date = new Date(...options.date);
-        return date.getFullYear() + "/" + (date.getMonth()) + "/" + date.getDate();
+        return date.getFullYear() + "/" + (date.getMonth() + 1) + "/" + date.getDate();
     })();
 
-    const parsedPage = parse(await rp("https://www.gocomics.com/" + options.comicName + "/" + dateString)
-        .catch(err => {
+    const imgURL = await rp("https://www.gocomics.com/" + options.comicName + "/" + dateString)
+        .then( async (response) => {
+            const parsedPage = await parse(response);
+            const imageURL = parsedPage.querySelector(".item-comic-image img").rawAttrs.split(/ src=/)[1].replace(/"/g, "");
+            return options.URLOnly ? imageURL : r(imageURL);
+
+        }).catch(err => {
             console.log("Request failed\n", err);
-            return "Failed to load comic!";
+            return "failed to load comic";
         })
-    )
-    const imageURL = parsedPage.querySelector(".item-comic-image img").rawAttrs.split(/ src=/)[1].replace(/"/g, "");
-    return options.URLOnly ? imageURL : r(imageURL);
+
+    return imgURL;
 }
 
 app.post('/post', async (req, res) => {
